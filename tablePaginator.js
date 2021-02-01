@@ -62,8 +62,6 @@
 //   simply call:
 //      paginateTable("tableTest");
 
-//Ex. link: 
-
 /**
  * @param string tableRef: table id to paginate
  * @param [int] pageMaxDefault: default value of pagination (10).
