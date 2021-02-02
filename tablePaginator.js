@@ -87,32 +87,6 @@ function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, button
     }
 
 
-    //handling select
-    let selectPageSize;
-    let isToAppendSelect = false;
-    if(perPageSelectId != null && document.getElementById(perPageSelectId) != null){
-        selectPageSize = document.getElementById(perPageSelectId);
-    } else {
-        selectPageSize = document.createElement("select");
-        selectPageSize.id = "maxPerPage";
-        isToAppendSelect = true;
-    }
-    selectPageSize.classList.add("select-page-size");
-
-    if(!repaginate){
-        for(let i = 0; i < perPageSelect.length; i++){
-            let option = document.createElement("option");
-            option.value = perPageSelect[i];
-            option.text = perPageSelect[i];
-            if(perPageSelect[i] == pageMaxDefault){
-                option.selected = true;
-            }
-            selectPageSize.appendChild(option);
-        }
-        selectPageSize.addEventListener("change", function(){changePagination(tableRef)});
-    }
-    //handling select
-
     if(table.rows.length - headDif - footDif > pageMaxDefault){
         table.dataset.page = 1;
 
@@ -132,6 +106,32 @@ function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, button
         //settings done
 
         //creating elements
+
+        //handling select
+        let selectPageSize;
+        let isToAppendSelect = false;
+        if(perPageSelectId != null && document.getElementById(perPageSelectId) != null){
+            selectPageSize = document.getElementById(perPageSelectId);
+        } else {
+            selectPageSize = document.createElement("select");
+            selectPageSize.id = "maxPerPage";
+            isToAppendSelect = true;
+        }
+        selectPageSize.classList.add("select-page-size");
+
+        if(!repaginate){
+            for(let i = 0; i < perPageSelect.length; i++){
+                let option = document.createElement("option");
+                option.value = perPageSelect[i];
+                option.text = perPageSelect[i];
+                if(perPageSelect[i] == pageMaxDefault){
+                    option.selected = true;
+                }
+                selectPageSize.appendChild(option);
+            }
+            selectPageSize.addEventListener("change", function(){changePagination(tableRef)});
+        }
+        //handling select
 
         if(repaginate){
             if(document.getElementById("actualButton") != null){
@@ -167,6 +167,9 @@ function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, button
                 console.log(i + " - removing... " + childNodes[i]);
                 document.getElementById(buttonAreaId).removeChild(childNodes[i]);
             }
+        }
+        if(document.getElementById("zeroResultsText") != null){
+            document.getElementById(perPageSelectId).parentNode.removeChild(document.getElementById(perPageSelectId));
         }
     }
 }
