@@ -77,7 +77,16 @@
 function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, buttonAreaId = "paginationButtonsContainer", perPageSelectId = "maxPerPage", perPageSelect = [5,10,30,50], excludeHead = true, excludeFoot = true){
     let table = document.getElementById(tableRef);
 
-    if(table.rows.length > pageMaxDefault){
+    let headDif = 0;
+    let footDif = 0;
+    if(excludeHead){
+        headDif++;
+    }
+    if(excludeFoot){
+        footDif++;
+    }
+
+    if(table.rows.length - headDif - footDif > pageMaxDefault){
         table.dataset.page = 1;
 
         let buttonContainer;
@@ -89,6 +98,7 @@ function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, button
             buttonContainer.id = "paginationButtonsContainer";
             isToAppendButtonContainer = true;
         }
+        buttonContainer.classList.add("button-container");
 
         let selectPageSize;
         let isToAppendSelect = false;
@@ -99,6 +109,7 @@ function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, button
             selectPageSize.id = "maxPerPage";
             isToAppendSelect = true;
         }
+        selectPageSize.classList.add("select-page-size");
 
         //settings done
 
@@ -142,11 +153,15 @@ function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, button
 
         goToPage("<?=$this->tableId;?>",1, pageMaxDefault, excludeHead, excludeFoot);
     } else {
-        if(document.getElementById(perPageSelectId)!=null){
-            document.getElementById(perPageSelectId).parentNode.removeChild(document.getElementById(perPageSelectId));
+        for(let r = 0 + headDif; r < table.rows.length - footDif; r++){
+            table.rows[r].setAttribute("style", "display:table-row;");
         }
-        if(document.getElementById(buttonAreaId)){
-            document.getElementById(buttonAreaId).parentNode.removeChild(document.getElementById(buttonAreaId));
+        if(document.getElementById(buttonAreaId).children.length > 0){
+            let childNodes = document.getElementById(buttonAreaId).children;
+            for(let i = childNodes.length-1; i >= 0; i--){
+                console.log(i + " - removing... " + childNodes[i]);
+                document.getElementById(buttonAreaId).removeChild(childNodes[i]);
+            }
         }
     }
 }
