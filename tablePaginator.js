@@ -1,5 +1,3 @@
-//USAGE
-
 // <table id="tableTest">
 //     <tr>
 //         <td>head1</td>
@@ -74,7 +72,7 @@
  * 
  * @return void
  */
-function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, buttonAreaId = "paginationButtonsContainer", perPageSelectId = "maxPerPage", perPageSelect = [5,10,30,50], excludeHead = true, excludeFoot = true){
+function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, addSortingToHeaders = true,  buttonAreaId = "paginationButtonsContainer", perPageSelectId = "maxPerPage", perPageSelect = [5,10,30,50], excludeHead = true, excludeFoot = true){
     let table = document.getElementById(tableRef);
 
     let headDif = 0;
@@ -84,6 +82,18 @@ function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, button
     }
     if(excludeFoot){
         footDif++;
+    }
+
+    if(addSortingToHeaders && excludeHead && table.rows[0].cells[0].dataset.sortlistener!="attached" && table.rows[0].cells[0].dataset.sortlistener==undefined){
+        for(let c = 0; c < table.rows[0].cells.length; c++){
+            table.rows[0].cells[c].addEventListener("click", function(event){
+                sortColumn(event.target);
+            });
+            table.rows[0].cells[c].addEventListener("mousedown", function(event){
+                event.preventDefault();
+            });
+            table.rows[0].cells[c].dataset.sortlistener = "attached";
+        }
     }
 
 
@@ -96,7 +106,7 @@ function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, button
             buttonContainer = document.getElementById(buttonAreaId);
         } else {
             buttonContainer = document.createElement("div");
-            buttonContainer.id = "paginationButtonsContainer";
+            buttonContainer.id = buttonAreaId;
             isToAppendButtonContainer = true;
         }
         buttonContainer.classList.add("button-container");
@@ -114,7 +124,7 @@ function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, button
             selectPageSize = document.getElementById(perPageSelectId);
         } else {
             selectPageSize = document.createElement("select");
-            selectPageSize.id = "maxPerPage";
+            selectPageSize.id = perPageSelectId;
             isToAppendSelect = true;
         }
         selectPageSize.classList.add("select-page-size");
@@ -158,17 +168,22 @@ function paginateTable(tableRef, pageMaxDefault = 10, repaginate = false, button
 
         goToPage("<?=$this->tableId;?>",1, pageMaxDefault, excludeHead, excludeFoot);
     } else {
-        for(let r = 0 + headDif; r < table.rows.length - footDif; r++){
+        let r;
+        for(r = 0 + headDif; r < table.rows.length - footDif; r++){
             table.rows[r].setAttribute("style", "display:table-row;");
+
         }
+        console.log("Max rows: " + (r-1));
         if(document.getElementById(buttonAreaId).children.length > 0){
             let childNodes = document.getElementById(buttonAreaId).children;
             for(let i = childNodes.length-1; i >= 0; i--){
-                console.log(i + " - removing... " + childNodes[i]);
                 document.getElementById(buttonAreaId).removeChild(childNodes[i]);
             }
         }
         if(document.getElementById("zeroResultsText") != null){
+            document.getElementById(perPageSelectId).parentNode.removeChild(document.getElementById(perPageSelectId));
+        }
+        if(document.getElementById(perPageSelectId).options.length < 1){
             document.getElementById(perPageSelectId).parentNode.removeChild(document.getElementById(perPageSelectId));
         }
     }
@@ -383,4 +398,161 @@ function goToPage(tId, pageNumber, perP, excludeH = true, excludeF = true){
 
 function changePagination(idTable){
     paginateTable(idTable, document.getElementById("maxPerPage").value, true);
+}
+
+function sortColumn(clickedTableCell, order = null, ignoreHeader = true, ignoreFooter = true){
+    let hDelta = 0;
+    if(ignoreHeader){
+        hDelta = 1;
+    }
+    let fDelta = 0;
+    if(ignoreFooter){
+        fDelta = 1;
+    }
+
+    if(clickedTableCell.tagName == "I"){
+        clickedTableCell = clickedTableCell.parentNode;
+    }
+
+    let changeOrder = false;
+    let changesCount = 0;
+    if(order == null){
+        order = "asc";
+        changeOrder = true;
+    }
+    if(order == "asc"){
+        let icon = document.createElement("i");
+        icon.classList.add("fa");
+        icon.classList.add("fa-arrow-up");
+        icon.id = "orderIcon";
+        if(document.getElementById("orderIcon") != null){
+            document.getElementById("orderIcon").parentNode.removeChild(document.getElementById("orderIcon"));
+        }
+        clickedTableCell.appendChild(icon);
+    }
+    if(order == "desc"){
+        let icon = document.createElement("i");
+        icon.classList.add("fa");
+        icon.classList.add("fa-arrow-down");
+        icon.id = "orderIcon";
+        if(document.getElementById("orderIcon") != null){
+            document.getElementById("orderIcon").parentNode.removeChild(document.getElementById("orderIcon"));
+        }
+        clickedTableCell.appendChild(icon);
+    }
+
+
+    let table = clickedTableCell;
+    while(table.tagName != "TABLE"){
+        table = table.parentNode;
+    }
+
+    let continueSorting = true;
+    while(continueSorting){
+        continueSorting = false;
+        for(let r = 0+hDelta; r < table.rows.length-fDelta -1; r++){
+            switch (order) {
+                case "asc":
+                    if(isNaN(Number(table.rows[r].cells[clickedTableCell.cellIndex].innerHTML))){
+                        if((table.rows[r].cells[clickedTableCell.cellIndex].innerHTML.match(/\//g) || []).length == 2){ //probably a date
+                            if(
+                                new Date(dmyToMDY(table.rows[r].cells[clickedTableCell.cellIndex].innerHTML)).getTime()
+                                >
+                                new Date(dmyToMDY(table.rows[r+1].cells[clickedTableCell.cellIndex].innerHTML)).getTime()
+                            ){
+                                if(!continueSorting){
+                                    continueSorting = true;
+                                }
+                                changesCount++;
+                                switchTableRows(table, r, r+1);
+                            }
+                        } else {
+                            if(
+                                table.rows[r].cells[clickedTableCell.cellIndex].innerHTML.toUpperCase()
+                                >
+                                table.rows[r+1].cells[clickedTableCell.cellIndex].innerHTML.toUpperCase()
+                            ){
+                                if(!continueSorting){
+                                    continueSorting = true;
+                                }
+                                changesCount++;
+                                switchTableRows(table, r, r+1);
+                            }
+                        }
+
+                    } else {
+                        if(
+                            Number(table.rows[r].cells[clickedTableCell.cellIndex].innerHTML)
+                            >
+                            Number(table.rows[r+1].cells[clickedTableCell.cellIndex].innerHTML)
+                        ){
+                            if(!continueSorting){
+                                continueSorting = true;
+                            }
+                            changesCount++;
+                            switchTableRows(table, r, r+1);
+                        }
+                    }
+                    break;
+                case "desc":
+                    if(isNaN(Number(table.rows[r].cells[clickedTableCell.cellIndex].innerHTML))){
+                        if((table.rows[r].cells[clickedTableCell.cellIndex].innerHTML.match(/\//g) || []).length == 2){ //probably a date
+                            if(
+                                new Date(dmyToMDY(table.rows[r].cells[clickedTableCell.cellIndex].innerHTML)).getTime()
+                                <
+                                new Date(dmyToMDY(table.rows[r+1].cells[clickedTableCell.cellIndex].innerHTML)).getTime()
+                            ){
+                                if(!continueSorting){
+                                    continueSorting = true;
+                                }
+                                changesCount++;
+                                switchTableRows(table, r, r+1);
+                            }
+                        } else {
+                            if(
+                                table.rows[r].cells[clickedTableCell.cellIndex].innerHTML.toUpperCase()
+                                <
+                                table.rows[r+1].cells[clickedTableCell.cellIndex].innerHTML.toUpperCase()
+                            ){
+                                if(!continueSorting){
+                                    continueSorting = true;
+                                }
+                                changesCount++;
+                                switchTableRows(table, r, r+1);
+                            }
+                        }
+
+                    } else {
+                        if(
+                            Number(table.rows[r].cells[clickedTableCell.cellIndex].innerHTML)
+                            <
+                            Number(table.rows[r+1].cells[clickedTableCell.cellIndex].innerHTML)
+                        ){
+                            if(!continueSorting){
+                                continueSorting = true;
+                            }
+                            changesCount++;
+                            switchTableRows(table, r, r+1);
+                        }
+                    }
+                    break;
+            }
+        }
+    }
+    if(changeOrder && changesCount==0){
+        return sortColumn(clickedTableCell, "desc");
+    }
+    paginateTable(table.id, document.getElementById("maxPerPage").value, true);
+}
+
+function switchTableRows(table, row1, row2){
+    let buffer;
+    buffer = table.rows[row1];
+    table.rows[row1].parentNode.insertBefore(table.rows[row2], table.rows[row1]);
+    table.rows[row2].parentNode.insertBefore(buffer, table.rows[row2]);
+}
+
+function dmyToMDY(dateDMY, separator = "/"){
+    [dia, mes, ano] = dateDMY.split(separator);
+    return mes + separator + dia + separator + ano;
 }
